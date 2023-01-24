@@ -503,3 +503,8 @@ def calc_npv(rate=0, cashflows=0, maturities=0, price=0):
     val += - price
 
     return val
+
+
+def pv(rate, cashflows, maturities,freq=1):
+    price = sum([cfi/(1+rate/freq)**(maturities[i]*freq) for i, cfi in enumerate(cashflows)])
+    return price

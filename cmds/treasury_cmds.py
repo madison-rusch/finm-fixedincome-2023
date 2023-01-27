@@ -11,18 +11,38 @@ from sklearn.linear_model import LinearRegression
 from scipy.optimize import minimize
 from scipy import interpolate
 
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.offsets import CustomBusinessDay
 
 
 def bday(date):
-    return bool(len(pd.bdate_range(date, date)))
+    us_bus = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    return bool(len(pd.bdate_range(date, date,freq=us_bus)))
 
-def prev_bday(date):
+def prev_bday(date,force_prev=False):
+    if isinstance(date,str):
+        date = datetime.datetime.strptime(date,'%Y-%m-%d')
+        date2str = True
+    else:
+        date2str = False
+        
+    if force_prev:
+        date += -datetime.timedelta(days=1)
     while not bday(date):
         date += -datetime.timedelta(days=1)
     
+    if date2str:
+        date = date.strftime('%Y-%m-%d')
+        
     return date
 
 def get_coupon_dates(quote_date,maturity_date):
+
+    if isinstance(quote_date,str):
+        quote_date = datetime.datetime.strptime(quote_date,'%Y-%m-%d')
+        
+    if isinstance(maturity_date,str):
+        maturity_date = datetime.datetime.strptime(maturity_date,'%Y-%m-%d')
     
     # divide by 180 just to be safe
     temp = pd.date_range(end=maturity_date, periods=np.ceil((maturity_date-quote_date).days/180), freq=pd.DateOffset(months=6))
@@ -483,3 +503,8 @@ def calc_npv(rate=0, cashflows=0, maturities=0, price=0):
     val += - price
 
     return val
+
+
+def pv(rate, cashflows, maturities,freq=1):
+    price = sum([cfi/(1+rate/freq)**(maturities[i]*freq) for i, cfi in enumerate(cashflows)])
+    return price
